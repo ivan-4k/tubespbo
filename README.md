@@ -1,6 +1,10 @@
 # Sistem Antrian Klinik
 
-Project Tugas Besar PBO (Pemrograman Berorientasi Objek)
+Project Tugas Besar PBO (Kelompok 6)
+Anggota:
+1. Ivan Febriansyah Safari (2403077)
+2. Suliswatun Hasanah (2403069)
+3. Kusti Rahmawati (2403016)
 
 ## Deskripsi
 Aplikasi Sistem Antrian Klinik berbasis Java yang digunakan untuk mengelola antrian pasien
@@ -27,7 +31,7 @@ di mana aplikasi langsung terhubung ke database MySQL menggunakan JDBC.
 2. Pastikan XAMPP (MySQL) sudah berjalan
 3. Import database menggunakan file `database/antrian.sql`
 4. Pastikan library JDBC (mysql-connector) sudah ada di folder `lib`
-5. Jalankan file `AntrianKlinikFrame.java`
+5. Jalankan file `MainApp.java`
 
 ## Teknologi
 - Java
