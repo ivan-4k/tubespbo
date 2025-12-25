@@ -3,23 +3,57 @@ package view;
 import database.DatabaseConnection;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class AntrianKlinikFrame extends JFrame {
 
-    JTextField txtNama, txtKeluhan;
+public class AntrianKlinikFrame extends JFrame {
+    void setWarnaStatus(JTable table, int kolomStatus) {
+    table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean isSelected,
+                boolean hasFocus, int row, int column) {
+
+            Component c = super.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+
+            String status = table.getValueAt(row, kolomStatus).toString();
+
+            if (status.equalsIgnoreCase("DILAYANI")) {
+                c.setBackground(new Color(200, 255, 200)); // hijau
+            } else if (status.equalsIgnoreCase("MENUNGGU")) {
+                c.setBackground(new Color(255, 255, 200)); // kuning
+            } else {
+                c.setBackground(Color.WHITE);
+            }
+
+            if (isSelected) {
+                c.setBackground(new Color(184, 207, 229)); // default selection
+            }
+
+            return c;
+        }
+    });
+}
+
+
+    // ===== FORM =====
+    JTextField txtNama, txtUmur, txtAlamat, txtKeluhan, txtSpesialis, txtRuangan;
     JComboBox<String> cbDokter;
     JLabel lblWaktu;
 
+    // ===== TABLE =====
     JTable tblAktif, tblSelesai;
     DefaultTableModel modelAktif, modelSelesai;
 
     public AntrianKlinikFrame() {
         setTitle("Sistem Antrian Klinik");
-        setSize(1200, 650);
+        setSize(1350, 720);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
@@ -56,14 +90,29 @@ public class AntrianKlinikFrame extends JFrame {
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setBorder(BorderFactory.createTitledBorder("Form Pasien"));
-        form.setPreferredSize(new Dimension(320, 0));
+        form.setPreferredSize(new Dimension(360, 0));
 
         txtNama = new JTextField();
+        txtUmur = new JTextField();
+        txtAlamat = new JTextField();
         txtKeluhan = new JTextField();
-        cbDokter = new JComboBox<>();
+        txtSpesialis = new JTextField();
+        txtRuangan = new JTextField();
 
-        txtNama.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        txtKeluhan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        txtSpesialis.setEditable(false);
+        txtRuangan.setEditable(false);
+
+        cbDokter = new JComboBox<>();
+        cbDokter.addActionListener(e -> tampilkanDetailDokter());
+
+        Dimension size = new Dimension(Integer.MAX_VALUE, 28);
+        txtNama.setMaximumSize(size);
+        txtUmur.setMaximumSize(size);
+        txtAlamat.setMaximumSize(size);
+        txtKeluhan.setMaximumSize(size);
+        txtSpesialis.setMaximumSize(size);
+        txtRuangan.setMaximumSize(size);
+        cbDokter.setMaximumSize(size);
 
         JButton btnAmbil = new JButton("Ambil Antrian");
         btnAmbil.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -71,15 +120,31 @@ public class AntrianKlinikFrame extends JFrame {
 
         form.add(new JLabel("Nama Pasien"));
         form.add(txtNama);
-        form.add(Box.createVerticalStrut(10));
+        form.add(Box.createVerticalStrut(8));
+
+        form.add(new JLabel("Umur"));
+        form.add(txtUmur);
+        form.add(Box.createVerticalStrut(8));
+
+        form.add(new JLabel("Alamat Pasien"));
+        form.add(txtAlamat);
+        form.add(Box.createVerticalStrut(8));
 
         form.add(new JLabel("Jenis Keluhan"));
         form.add(txtKeluhan);
-        form.add(Box.createVerticalStrut(10));
+        form.add(Box.createVerticalStrut(8));
 
-        form.add(new JLabel("Dokter Spesialis"));
+        form.add(new JLabel("Nama Dokter"));
         form.add(cbDokter);
-        form.add(Box.createVerticalStrut(20));
+        form.add(Box.createVerticalStrut(8));
+
+        form.add(new JLabel("Spesialis"));
+        form.add(txtSpesialis);
+        form.add(Box.createVerticalStrut(8));
+
+        form.add(new JLabel("Ruangan"));
+        form.add(txtRuangan);
+        form.add(Box.createVerticalStrut(15));
 
         form.add(btnAmbil);
 
@@ -90,11 +155,15 @@ public class AntrianKlinikFrame extends JFrame {
     JPanel initTables() {
         JPanel panel = new JPanel(new GridLayout(2, 1, 10, 10));
 
-        // TABEL AKTIF
+        // ===== ANTRIAN AKTIF =====
         modelAktif = new DefaultTableModel(
-            new String[]{"No", "Nama", "Dokter", "Status"}, 0
+            new String[]{
+                "No", "Nama", "Umur", "Alamat", "Keluhan",
+                "Dokter", "Spesialis", "Ruangan", "Status"
+            }, 0
         );
         tblAktif = new JTable(modelAktif);
+        setWarnaStatus(tblAktif, 8);
         JScrollPane spAktif = new JScrollPane(tblAktif);
         spAktif.setBorder(BorderFactory.createTitledBorder("Antrian Aktif"));
 
@@ -112,13 +181,21 @@ public class AntrianKlinikFrame extends JFrame {
         atas.add(spAktif, BorderLayout.CENTER);
         atas.add(btnPanel, BorderLayout.SOUTH);
 
-        // TABEL SELESAI
+        // ===== ANTRIAN SELESAI =====
         modelSelesai = new DefaultTableModel(
-            new String[]{"No", "Nama", "Dokter", "Selesai"}, 0
+            new String[]{
+                "No", "Nama", "Umur", "Alamat",
+                "Keluhan", "Dokter", "Selesai"
+            }, 0
         );
-        tblSelesai = new JTable(modelSelesai);
         JScrollPane spSelesai = new JScrollPane(tblSelesai);
-        spSelesai.setBorder(BorderFactory.createTitledBorder("Antrian Selesai"));
+spSelesai.setVerticalScrollBarPolicy(
+    JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
+);
+spSelesai.setBorder(
+    BorderFactory.createTitledBorder("Antrian Selesai")
+);
+
 
         panel.add(atas);
         panel.add(spSelesai);
@@ -128,11 +205,15 @@ public class AntrianKlinikFrame extends JFrame {
 
     // ================= DATA =================
     void loadDokter() {
+        cbDokter.removeAllItems();
         try (Connection c = DatabaseConnection.getConnection()) {
             ResultSet rs = c.createStatement().executeQuery("SELECT * FROM dokter");
             while (rs.next()) {
                 cbDokter.addItem(
-                    rs.getInt("id_dokter") + " | " + rs.getString("nama_dokter")
+                    rs.getInt("id_dokter") + " | " +
+                    rs.getString("nama_dokter") + " | " +
+                    rs.getString("spesialis") + " | " +
+                    rs.getString("ruangan")
                 );
             }
         } catch (Exception e) {
@@ -140,34 +221,56 @@ public class AntrianKlinikFrame extends JFrame {
         }
     }
 
-    void loadAntrianAktif() {
-        modelAktif.setRowCount(0);
-        try (Connection c = DatabaseConnection.getConnection()) {
-            ResultSet rs = c.createStatement().executeQuery(
-                "SELECT a.id_antrian,a.nomor_antrian,p.nama_pasien,d.nama_dokter,a.status " +
-                "FROM antrian a JOIN pasien p ON a.id_pasien=p.id_pasien " +
-                "JOIN dokter d ON a.id_dokter=d.id_dokter " +
-                "WHERE a.status IN ('MENUNGGU','DILAYANI')"
-            );
-            while (rs.next()) {
-                modelAktif.addRow(new Object[]{
-                    rs.getInt(2),
-                    rs.getString(3),
-                    rs.getString(4),
-                    rs.getString(5)
-                });
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    void tampilkanDetailDokter() {
+        if (cbDokter.getSelectedItem() == null) return;
+        String[] data = cbDokter.getSelectedItem().toString().split("\\|");
+        txtSpesialis.setText(data[2].trim());
+        txtRuangan.setText(data[3].trim());
     }
+
+    void loadAntrianAktif() {
+    modelAktif.setRowCount(0);
+    try (Connection c = DatabaseConnection.getConnection()) {
+        ResultSet rs = c.createStatement().executeQuery(
+            "SELECT a.nomor_antrian, p.nama_pasien, p.umur, p.alamat, p.jenis_keluhan, " +
+            "d.nama_dokter, d.spesialis, d.ruangan, a.status " +
+            "FROM antrian a " +
+            "JOIN pasien p ON a.id_pasien=p.id_pasien " +
+            "JOIN dokter d ON a.id_dokter=d.id_dokter " +
+            "WHERE a.status IN ('MENUNGGU','DILAYANI') " +
+            "ORDER BY " +
+            "CASE a.status " +
+            "  WHEN 'MENUNGGU' THEN 1 " +
+            "  WHEN 'DILAYANI' THEN 2 " +
+            "END, a.nomor_antrian ASC"
+        );
+
+        while (rs.next()) {
+            modelAktif.addRow(new Object[]{
+                rs.getInt(1),      // No
+                rs.getString(2),   // Nama
+                rs.getInt(3),      // Umur
+                rs.getString(4),   // Alamat
+                rs.getString(5),   // Keluhan
+                rs.getString(6),   // Dokter
+                rs.getString(7),   // Spesialis
+                rs.getString(8),   // Ruangan
+                rs.getString(9)    // Status
+            });
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
 
     void loadAntrianSelesai() {
         modelSelesai.setRowCount(0);
         try (Connection c = DatabaseConnection.getConnection()) {
             ResultSet rs = c.createStatement().executeQuery(
-                "SELECT a.nomor_antrian,p.nama_pasien,d.nama_dokter,a.waktu_selesai " +
-                "FROM antrian a JOIN pasien p ON a.id_pasien=p.id_pasien " +
+                "SELECT a.nomor_antrian, p.nama_pasien, p.umur, p.alamat, p.jenis_keluhan, " +
+                "d.nama_dokter, a.waktu_selesai " +
+                "FROM antrian a " +
+                "JOIN pasien p ON a.id_pasien=p.id_pasien " +
                 "JOIN dokter d ON a.id_dokter=d.id_dokter " +
                 "WHERE a.status='SELESAI'"
             );
@@ -175,8 +278,11 @@ public class AntrianKlinikFrame extends JFrame {
                 modelSelesai.addRow(new Object[]{
                     rs.getInt(1),
                     rs.getString(2),
-                    rs.getString(3),
-                    rs.getTimestamp(4)
+                    rs.getInt(3),
+                    rs.getString(4),
+                    rs.getString(5),
+                    rs.getString(6),
+                    rs.getTimestamp(7)
                 });
             }
         } catch (Exception e) {
@@ -186,13 +292,40 @@ public class AntrianKlinikFrame extends JFrame {
 
     // ================= LOGIC =================
     void ambilAntrian() {
+        if (txtNama.getText().isEmpty() ||
+            txtUmur.getText().isEmpty() ||
+            txtAlamat.getText().isEmpty() ||
+            txtKeluhan.getText().isEmpty()) {
+
+            JOptionPane.showMessageDialog(this,
+                "Lengkapi semua data pasien!",
+                "Validasi",
+                JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        int umur;
+        try {
+            umur = Integer.parseInt(txtUmur.getText());
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                "Umur harus berupa angka!",
+                "Validasi",
+                JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
         try (Connection c = DatabaseConnection.getConnection()) {
             PreparedStatement ps = c.prepareStatement(
-                "INSERT INTO pasien(nama_pasien,jenis_keluhan) VALUES (?,?)",
+                "INSERT INTO pasien(nama_pasien, umur, alamat, jenis_keluhan) VALUES (?,?,?,?)",
                 Statement.RETURN_GENERATED_KEYS
             );
             ps.setString(1, txtNama.getText());
-            ps.setString(2, txtKeluhan.getText());
+            ps.setInt(2, umur);
+            ps.setString(3, txtAlamat.getText());
+            ps.setString(4, txtKeluhan.getText());
             ps.executeUpdate();
 
             ResultSet rs = ps.getGeneratedKeys();
@@ -220,8 +353,15 @@ public class AntrianKlinikFrame extends JFrame {
             ps2.executeUpdate();
 
             loadAntrianAktif();
+
             txtNama.setText("");
+            txtUmur.setText("");
+            txtAlamat.setText("");
             txtKeluhan.setText("");
+            txtSpesialis.setText("");
+            txtRuangan.setText("");
+            cbDokter.setSelectedIndex(0);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
