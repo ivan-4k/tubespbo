@@ -622,13 +622,14 @@ public class AntrianKlinikFrame extends JFrame {
     }
 
     private void ubahStatus(String status) {
-        int row = tblAktif.getSelectedRow();
-        if (row == -1) {
-            showError("Pilih antrian terlebih dahulu!");
-            return;
-        }
+    int row = tblAktif.getSelectedRow();
+    if (row == -1) {
+        showError("Pilih antrian terlebih dahulu!");
+        return;
+    }
 
-        int nomorAntrian = (int) modelAktif.getValueAt(row, 0);
+        String nomorStr = modelAktif.getValueAt(row, 0).toString();
+        int nomorAntrian = Integer.parseInt(nomorStr);
         
         boolean success = controller.updateStatusAntrian(nomorAntrian, status);
         if (success) {
