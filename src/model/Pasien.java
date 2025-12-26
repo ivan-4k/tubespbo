@@ -38,7 +38,7 @@ public class Pasien {
         return umur;
     }
 
-    // ================= SETTER (OPSIONAL) =================
+    // ================= SETTER =================
     public void setNamaPasien(String namaPasien) {
         this.namaPasien = namaPasien;
     }
@@ -53,5 +53,14 @@ public class Pasien {
 
     public void setUmur(int umur) {
         this.umur = umur;
+    }
+
+    @Override
+    public String toString() {
+        return "Pasien{" +
+                "namaPasien='" + namaPasien + '\'' +
+                ", umur=" + umur +
+                ", keluhan='" + jenisKeluhan + '\'' +
+                '}';
     }
 }

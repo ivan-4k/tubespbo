@@ -1,28 +1,33 @@
 package view;
 
-import database.DatabaseConnection;
+import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.sql.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+
+import controller.AntrianController;
 
 public class AntrianKlinikFrame extends JFrame {
 
-    // ================= FORM =================
+    // ================= COMPONENTS =================
     private JTextField txtNama, txtUmur, txtAlamat, txtKeluhan;
     private JTextField txtSpesialis, txtRuangan;
     private JComboBox<String> cbDokter;
     private JLabel lblWaktu;
-
-    // ================= TABLE =================
     private JTable tblAktif, tblSelesai;
     private DefaultTableModel modelAktif, modelSelesai;
+    
+    // ================= CONTROLLER =================
+    private AntrianController controller;
 
     // ================= CONSTRUCTOR =================
-    public AntrianKlinikFrame() {
+    public AntrianKlinikFrame(AntrianController controller) {
+        this.controller = controller;
+        
         setTitle("Sistem Antrian Klinik");
         setSize(1350, 720);
         setLocationRelativeTo(null);
@@ -32,7 +37,6 @@ public class AntrianKlinikFrame extends JFrame {
         add(initHeader(), BorderLayout.NORTH);
         add(initForm(), BorderLayout.WEST);
 
-        // KUNCI AGAR TIDAK MEPET
         JPanel centerWrapper = new JPanel(new BorderLayout());
         centerWrapper.add(initTables(), BorderLayout.NORTH);
         add(centerWrapper, BorderLayout.CENTER);
@@ -172,7 +176,7 @@ public class AntrianKlinikFrame extends JFrame {
         spSelesai.setBorder(BorderFactory.createTitledBorder("Antrian Selesai"));
 
         panel.add(spSelesai);
-        panel.add(Box.createVerticalGlue()); // ruang kosong bawah
+        panel.add(Box.createVerticalGlue());
 
         return panel;
     }
@@ -204,145 +208,150 @@ public class AntrianKlinikFrame extends JFrame {
         });
     }
 
-    // ================= DATA =================
+    // ================= DATA LOADING =================
     private void loadDokter() {
         cbDokter.removeAllItems();
-        try (Connection c = DatabaseConnection.getConnection()) {
-            ResultSet rs = c.createStatement().executeQuery("SELECT * FROM dokter");
-            while (rs.next()) {
-                cbDokter.addItem(
-                        rs.getInt("id_dokter") + " | " +
-                        rs.getString("nama_dokter") + " | " +
-                        rs.getString("spesialis") + " | " +
-                        rs.getString("ruangan")
-                );
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        List<Map<String, Object>> dokterList = controller.getDaftarDokter();
+        
+        for (Map<String, Object> dokter : dokterList) {
+            String item = dokter.get("id") + " | " +
+                         dokter.get("nama") + " | " +
+                         dokter.get("spesialis") + " | " +
+                         dokter.get("ruangan");
+            cbDokter.addItem(item);
         }
     }
 
     private void tampilkanDetailDokter() {
         if (cbDokter.getSelectedItem() == null) return;
-        String[] d = cbDokter.getSelectedItem().toString().split("\\|");
-        txtSpesialis.setText(d[2].trim());
-        txtRuangan.setText(d[3].trim());
+        
+        String selectedItem = cbDokter.getSelectedItem().toString();
+        String[] parts = selectedItem.split("\\|");
+        
+        if (parts.length >= 1) {
+            try {
+                int idDokter = Integer.parseInt(parts[0].trim());
+                Map<String, String> detail = controller.getDetailDokter(idDokter);
+                
+                txtSpesialis.setText(detail.getOrDefault("spesialis", ""));
+                txtRuangan.setText(detail.getOrDefault("ruangan", ""));
+            } catch (NumberFormatException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void loadAntrianAktif() {
         modelAktif.setRowCount(0);
-        try (Connection c = DatabaseConnection.getConnection()) {
-            ResultSet rs = c.createStatement().executeQuery(
-                    "SELECT a.nomor_antrian, p.nama_pasien, p.umur, p.alamat, p.jenis_keluhan, " +
-                    "d.nama_dokter, d.spesialis, d.ruangan, a.status " +
-                    "FROM antrian a " +
-                    "JOIN pasien p ON a.id_pasien=p.id_pasien " +
-                    "JOIN dokter d ON a.id_dokter=d.id_dokter " +
-                    "WHERE a.status IN ('MENUNGGU','DILAYANI') " +
-                    "ORDER BY CASE a.status WHEN 'MENUNGGU' THEN 1 ELSE 2 END, a.nomor_antrian"
-            );
-            while (rs.next()) {
-                modelAktif.addRow(new Object[]{
-                        rs.getInt(1), rs.getString(2), rs.getInt(3),
-                        rs.getString(4), rs.getString(5), rs.getString(6),
-                        rs.getString(7), rs.getString(8), rs.getString(9)
-                });
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        List<Map<String, Object>> antrianList = controller.getAntrianAktif();
+        
+        for (Map<String, Object> antrian : antrianList) {
+            modelAktif.addRow(new Object[]{
+                antrian.get("nomor"),
+                antrian.get("nama"),
+                antrian.get("umur"),
+                antrian.get("alamat"),
+                antrian.get("keluhan"),
+                antrian.get("dokter"),
+                antrian.get("spesialis"),
+                antrian.get("ruangan"),
+                antrian.get("status")
+            });
         }
     }
 
     private void loadAntrianSelesai() {
         modelSelesai.setRowCount(0);
-        try (Connection c = DatabaseConnection.getConnection()) {
-            ResultSet rs = c.createStatement().executeQuery(
-                    "SELECT a.nomor_antrian, p.nama_pasien, p.umur, p.alamat, p.jenis_keluhan, " +
-                    "d.nama_dokter, a.waktu_selesai " +
-                    "FROM antrian a " +
-                    "JOIN pasien p ON a.id_pasien=p.id_pasien " +
-                    "JOIN dokter d ON a.id_dokter=d.id_dokter " +
-                    "WHERE a.status='SELESAI'"
-            );
-            while (rs.next()) {
-                modelSelesai.addRow(new Object[]{
-                        rs.getInt(1), rs.getString(2), rs.getInt(3),
-                        rs.getString(4), rs.getString(5),
-                        rs.getString(6), rs.getTimestamp(7)
-                });
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        List<Map<String, Object>> antrianList = controller.getAntrianSelesai();
+        
+        for (Map<String, Object> antrian : antrianList) {
+            modelSelesai.addRow(new Object[]{
+                antrian.get("nomor"),
+                antrian.get("nama"),
+                antrian.get("umur"),
+                antrian.get("alamat"),
+                antrian.get("keluhan"),
+                antrian.get("dokter"),
+                antrian.get("waktu_selesai")
+            });
         }
     }
 
     // ================= LOGIC =================
     private void ambilAntrian() {
-        if (txtNama.getText().isEmpty() || txtUmur.getText().isEmpty()
-                || txtAlamat.getText().isEmpty() || txtKeluhan.getText().isEmpty()) {
+        // Validasi form
+        if (txtNama.getText().isEmpty() || txtUmur.getText().isEmpty() ||
+            txtAlamat.getText().isEmpty() || txtKeluhan.getText().isEmpty() ||
+            cbDokter.getSelectedItem() == null) {
             JOptionPane.showMessageDialog(this, "Lengkapi semua data!");
             return;
         }
 
-        try (Connection c = DatabaseConnection.getConnection()) {
-            PreparedStatement ps = c.prepareStatement(
-                    "INSERT INTO pasien(nama_pasien,umur,alamat,jenis_keluhan) VALUES (?,?,?,?)",
-                    Statement.RETURN_GENERATED_KEYS
-            );
-            ps.setString(1, txtNama.getText());
-            ps.setInt(2, Integer.parseInt(txtUmur.getText()));
-            ps.setString(3, txtAlamat.getText());
-            ps.setString(4, txtKeluhan.getText());
-            ps.executeUpdate();
+        try {
+            String nama = txtNama.getText();
+            int umur = Integer.parseInt(txtUmur.getText());
+            String alamat = txtAlamat.getText();
+            String keluhan = txtKeluhan.getText();
+            
+            String selectedDokter = cbDokter.getSelectedItem().toString();
+            int idDokter = Integer.parseInt(selectedDokter.split("\\|")[0].trim());
 
-            ResultSet rs = ps.getGeneratedKeys();
-            rs.next();
-            int idPasien = rs.getInt(1);
-
-            ResultSet r = c.createStatement().executeQuery(
-                    "SELECT IFNULL(MAX(nomor_antrian),0)+1 FROM antrian");
-            r.next();
-
-            int idDokter = Integer.parseInt(
-                    cbDokter.getSelectedItem().toString().split("\\|")[0].trim());
-
-            PreparedStatement ps2 = c.prepareStatement(
-                    "INSERT INTO antrian(nomor_antrian,id_pasien,id_dokter,status,waktu_ambil) " +
-                    "VALUES (?,?,?,?,NOW())");
-            ps2.setInt(1, r.getInt(1));
-            ps2.setInt(2, idPasien);
-            ps2.setInt(3, idDokter);
-            ps2.setString(4, "MENUNGGU");
-            ps2.executeUpdate();
-
-            loadAntrianAktif();
-            txtNama.setText(""); txtUmur.setText("");
-            txtAlamat.setText(""); txtKeluhan.setText("");
-            txtSpesialis.setText(""); txtRuangan.setText("");
-
+            // Gunakan controller untuk ambil antrian
+            Map<String, Object> result = controller.ambilAntrian(nama, umur, alamat, keluhan, idDokter);
+            
+            if ((Boolean) result.get("success")) {
+                JOptionPane.showMessageDialog(this,
+                    "Antrian berhasil! Nomor: " + result.get("nomorAntrian"));
+                
+                // Reset form
+                txtNama.setText("");
+                txtUmur.setText("");
+                txtAlamat.setText("");
+                txtKeluhan.setText("");
+                txtSpesialis.setText("");
+                txtRuangan.setText("");
+                
+                // Refresh tables
+                loadAntrianAktif();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Gagal: " + result.get("message"),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
+            
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                "Umur harus berupa angka!", "Error", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Terjadi kesalahan: " + e.getMessage(),
+                "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
 
     private void ubahStatus(String status) {
         int row = tblAktif.getSelectedRow();
-        if (row == -1) return;
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Pilih antrian terlebih dahulu!");
+            return;
+        }
 
-        int nomor = (int) modelAktif.getValueAt(row, 0);
-        try (Connection c = DatabaseConnection.getConnection()) {
-            PreparedStatement ps = c.prepareStatement(
-                    "UPDATE antrian SET status=?, waktu_" +
-                    (status.equals("DILAYANI") ? "mulai" : "selesai") +
-                    "=NOW() WHERE nomor_antrian=?");
-            ps.setString(1, status);
-            ps.setInt(2, nomor);
-            ps.executeUpdate();
-
+        int nomorAntrian = (int) modelAktif.getValueAt(row, 0);
+        
+        boolean success = controller.updateStatusAntrian(nomorAntrian, status);
+        if (success) {
             loadAntrianAktif();
             loadAntrianSelesai();
-        } catch (Exception e) {
-            e.printStackTrace();
+            
+            String message = status.equals("DILAYANI") ? 
+                "Antrian " + nomorAntrian + " sedang dilayani" :
+                "Antrian " + nomorAntrian + " telah selesai";
+            JOptionPane.showMessageDialog(this, message);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Gagal mengupdate status antrian",
+                "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -354,6 +363,13 @@ public class AntrianKlinikFrame extends JFrame {
                 )
         ).start();
     }
-
-   
+    
+    @Override
+    public void dispose() {
+        // Tutup koneksi database saat frame ditutup
+        if (controller != null) {
+            controller.closeConnection();
+        }
+        super.dispose();
+    }
 }
