@@ -40,7 +40,6 @@ public class AntrianController {
                 dokter.put("nama", rs.getString("nama_dokter"));
                 dokter.put("spesialis", rs.getString("spesialis"));
                 dokter.put("ruangan", rs.getString("ruangan"));
-                dokter.put("jam_praktek", rs.getString("jam_praktek"));
                 result.add(dokter);
             }
         } catch (SQLException e) {
