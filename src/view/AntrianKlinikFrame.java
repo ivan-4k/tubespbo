@@ -541,23 +541,47 @@ public class AntrianKlinikFrame extends JFrame {
     }
 
     private void loadAntrianSelesai() {
-        if (modelSelesai == null) return;
+    if (modelSelesai == null) return;
+    
+    modelSelesai.setRowCount(0);
+    List<Map<String, Object>> antrianList = controller.getAntrianSelesai();
+    
+    for (Map<String, Object> antrian : antrianList) {
+        String waktuSelesai = "Belum ada waktu";
         
-        modelSelesai.setRowCount(0);
-        List<Map<String, Object>> antrianList = controller.getAntrianSelesai();
-        
-        for (Map<String, Object> antrian : antrianList) {
-            modelSelesai.addRow(new Object[]{
-                antrian.get("nomor"),
-                antrian.get("nama"),
-                antrian.get("umur"),
-                antrian.get("alamat"),
-                antrian.get("keluhan"),
-                antrian.get("dokter"),
-                "Belum ada waktu"
-            });
+        if (antrian.containsKey("waktu_selesai") && 
+            antrian.get("waktu_selesai") != null && 
+            !antrian.get("waktu_selesai").toString().isEmpty() &&
+            !antrian.get("waktu_selesai").toString().equals("null")) {
+            
+            waktuSelesai = formatWaktu(antrian.get("waktu_selesai").toString());
         }
+        
+        modelSelesai.addRow(new Object[]{
+            antrian.get("nomor"),
+            antrian.get("nama"),
+            antrian.get("umur"),
+            antrian.get("alamat"),
+            antrian.get("keluhan"),
+            antrian.get("dokter"),
+            waktuSelesai
+        });
     }
+}
+
+// Method untuk format waktu
+private String formatWaktu(String waktuServer) {
+    try {
+        // Ubah ke format yang lebih mudah dibaca
+        SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat sdfOutput = new SimpleDateFormat("HH:mm:ss");
+        
+        Date date = sdfInput.parse(waktuServer);
+        return sdfOutput.format(date);
+    } catch (Exception e) {
+        return waktuServer;
+    }
+}
 
     // ================= BUSINESS LOGIC =================
     private void ambilAntrian() {
