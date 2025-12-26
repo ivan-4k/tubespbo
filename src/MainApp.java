@@ -1,4 +1,4 @@
-package src;
+
 import javax.swing.SwingUtilities;
 import view.AntrianKlinikFrame;
 

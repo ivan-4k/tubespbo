@@ -4,24 +4,22 @@ import java.sql.Timestamp;
 
 public class Antrian {
 
-    private int idAntrian;
     private int nomorAntrian;
-    private int idPasien;
-    private int idDokter;
+    private Pasien pasien;
+    private Dokter dokter;
     private String status;
     private Timestamp waktuAmbil;
     private Timestamp waktuMulai;
     private Timestamp waktuSelesai;
 
     // ================= CONSTRUCTOR =================
-    public Antrian(int idAntrian, int nomorAntrian, int idPasien, int idDokter,
-                   String status, Timestamp waktuAmbil,
-                   Timestamp waktuMulai, Timestamp waktuSelesai) {
+    public Antrian(int nomorAntrian, Pasien pasien, Dokter dokter,
+                String status, Timestamp waktuAmbil,
+                Timestamp waktuMulai, Timestamp waktuSelesai) {
 
-        this.idAntrian = idAntrian;
         this.nomorAntrian = nomorAntrian;
-        this.idPasien = idPasien;
-        this.idDokter = idDokter;
+        this.pasien = pasien;
+        this.dokter = dokter;
         this.status = status;
         this.waktuAmbil = waktuAmbil;
         this.waktuMulai = waktuMulai;
@@ -29,20 +27,17 @@ public class Antrian {
     }
 
     // ================= GETTER =================
-    public int getIdAntrian() {
-        return idAntrian;
-    }
 
     public int getNomorAntrian() {
         return nomorAntrian;
     }
 
-    public int getIdPasien() {
-        return idPasien;
+    public Pasien getPasien() {
+        return pasien;
     }
 
-    public int getIdDokter() {
-        return idDokter;
+    public Dokter getDokter() {
+        return dokter;
     }
 
     public String getStatus() {
@@ -62,6 +57,19 @@ public class Antrian {
     }
 
     // ================= SETTER =================
+
+    public void setNomorAntrian(int nomorAntrian) {
+        this.nomorAntrian = nomorAntrian;
+    }
+
+    public void setPasien(Pasien pasien) {
+        this.pasien = pasien;
+    }
+
+    public void setDokter(Dokter dokter) {
+        this.dokter = dokter;
+    }
+
     public void setStatus(String status) {
         this.status = status;
     }
@@ -72,5 +80,13 @@ public class Antrian {
 
     public void setWaktuSelesai(Timestamp waktuSelesai) {
         this.waktuSelesai = waktuSelesai;
+    }
+
+    @Override
+    public String toString() {
+        return "Antrian #" + nomorAntrian + 
+               " - " + pasien.getNamaPasien() + 
+               " - " + dokter.getNamaDokter() + 
+               " - Status: " + status;
     }
 }
