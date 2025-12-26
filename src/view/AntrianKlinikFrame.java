@@ -7,8 +7,9 @@ import java.util.List;
 import java.util.Map;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 
+import view.tablemodel.AntrianTableModel;
+import view.tablemodel.AntrianSelesaiTableModel;
 import controller.AntrianController;
 
 public class AntrianKlinikFrame extends JFrame {
@@ -19,7 +20,8 @@ public class AntrianKlinikFrame extends JFrame {
     private JComboBox<String> cbDokter;
     private JLabel lblWaktu;
     private JTable tblAktif, tblSelesai;
-    private DefaultTableModel modelAktif, modelSelesai;
+    private AntrianTableModel modelAktif;
+    private AntrianSelesaiTableModel modelSelesai;
     private JTabbedPane tabbedPane;
     
     // ================= CONTROLLER =================
@@ -264,16 +266,7 @@ public class AntrianKlinikFrame extends JFrame {
     }
 
     private JScrollPane createActiveTable() {
-        modelAktif = new DefaultTableModel(
-            new String[]{"No", "Nama", "Umur", "Alamat", "Keluhan", "Dokter", "Spesialis", "Ruangan", "Status"}, 
-            0
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
+        modelAktif = new AntrianTableModel(null);
         tblAktif = new JTable(modelAktif);
         customizeTable(tblAktif);
         setWarnaStatus(tblAktif, 8);
@@ -284,16 +277,7 @@ public class AntrianKlinikFrame extends JFrame {
     }
 
     private JScrollPane createCompletedTable() {
-        modelSelesai = new DefaultTableModel(
-            new String[]{"No", "Nama", "Umur", "Alamat", "Keluhan", "Dokter", "Selesai"}, 
-            0
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
+        modelSelesai = new AntrianSelesaiTableModel(null);
         tblSelesai = new JTable(modelSelesai);
         customizeTable(tblSelesai);
 
@@ -522,66 +506,16 @@ public class AntrianKlinikFrame extends JFrame {
     private void loadAntrianAktif() {
         if (modelAktif == null) return;
         
-        modelAktif.setRowCount(0);
         List<Map<String, Object>> antrianList = controller.getAntrianAktif();
-        
-        for (Map<String, Object> antrian : antrianList) {
-            modelAktif.addRow(new Object[]{
-                antrian.get("nomor"),
-                antrian.get("nama"),
-                antrian.get("umur"),
-                antrian.get("alamat"),
-                antrian.get("keluhan"),
-                antrian.get("dokter"),
-                antrian.get("spesialis"),
-                antrian.get("ruangan"),
-                antrian.get("status")
-            });
-        }
+        modelAktif.updateData(antrianList);
     }
 
     private void loadAntrianSelesai() {
-    if (modelSelesai == null) return;
-    
-    modelSelesai.setRowCount(0);
-    List<Map<String, Object>> antrianList = controller.getAntrianSelesai();
-    
-    for (Map<String, Object> antrian : antrianList) {
-        String waktuSelesai = "Belum ada waktu";
+        if (modelSelesai == null) return;
         
-        if (antrian.containsKey("waktu_selesai") && 
-            antrian.get("waktu_selesai") != null && 
-            !antrian.get("waktu_selesai").toString().isEmpty() &&
-            !antrian.get("waktu_selesai").toString().equals("null")) {
-            
-            waktuSelesai = formatWaktu(antrian.get("waktu_selesai").toString());
-        }
-        
-        modelSelesai.addRow(new Object[]{
-            antrian.get("nomor"),
-            antrian.get("nama"),
-            antrian.get("umur"),
-            antrian.get("alamat"),
-            antrian.get("keluhan"),
-            antrian.get("dokter"),
-            waktuSelesai
-        });
+        List<Map<String, Object>> antrianList = controller.getAntrianSelesai();
+        modelSelesai.updateData(antrianList);
     }
-}
-
-// Method untuk format waktu
-private String formatWaktu(String waktuServer) {
-    try {
-        // Ubah ke format yang lebih mudah dibaca
-        SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        SimpleDateFormat sdfOutput = new SimpleDateFormat("HH:mm:ss");
-        
-        Date date = sdfInput.parse(waktuServer);
-        return sdfOutput.format(date);
-    } catch (Exception e) {
-        return waktuServer;
-    }
-}
 
     // ================= BUSINESS LOGIC =================
     private void ambilAntrian() {
@@ -646,24 +580,44 @@ private String formatWaktu(String waktuServer) {
     }
 
     private void ubahStatus(String status) {
-    int row = tblAktif.getSelectedRow();
-    if (row == -1) {
-        showError("Pilih antrian terlebih dahulu!");
-        return;
-    }
+        int row = tblAktif.getSelectedRow();
+        if (row == -1) {
+            showError("Pilih antrian terlebih dahulu!");
+            return;
+        }
 
-        String nomorStr = modelAktif.getValueAt(row, 0).toString();
-        int nomorAntrian = Integer.parseInt(nomorStr);
-        
-        boolean success = controller.updateStatusAntrian(nomorAntrian, status);
-        if (success) {
-            String message = status.equals("DILAYANI") ? 
-                "Antrian " + nomorAntrian + " sedang dilayani" :
-                "Antrian " + nomorAntrian + " telah selesai";
-            showSuccess(message);
-            refreshTables();
-        } else {
-            showError("Gagal mengupdate status antrian");
+        try {
+            // Ambil nilai dari AntrianTableModel
+            Object nomorObj = modelAktif.getValueAt(row, 0);
+            String nomorStr = nomorObj != null ? nomorObj.toString() : "";
+            
+            // Parse nomor antrian
+            int nomorAntrian;
+            try {
+                nomorAntrian = Integer.parseInt(nomorStr);
+            } catch (NumberFormatException e) {
+                // Handle jika nomor adalah string seperti "251226005"
+                if (nomorStr.length() > 3) {
+                    nomorAntrian = Integer.parseInt(nomorStr.substring(nomorStr.length() - 3));
+                } else {
+                    throw new Exception("Format nomor antrian tidak valid: " + nomorStr);
+                }
+            }
+            
+            boolean success = controller.updateStatusAntrian(nomorAntrian, status);
+            if (success) {
+                String message = status.equals("DILAYANI") ? 
+                    "Antrian " + nomorStr + " sedang dilayani" :
+                    "Antrian " + nomorStr + " telah selesai";
+                showSuccess(message);
+                refreshTables();
+            } else {
+                showError("Gagal mengupdate status antrian");
+            }
+            
+        } catch (Exception e) {
+            showError("Terjadi kesalahan: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
