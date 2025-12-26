@@ -5,7 +5,6 @@ public class Dokter {
     private String namaDokter;
     private String spesialis;
     private String ruangan;
-    private String jamPraktek;
 
     // Constructors
     public Dokter() {}
@@ -15,7 +14,6 @@ public class Dokter {
         this.namaDokter = namaDokter;
         this.spesialis = spesialis;
         this.ruangan = ruangan;
-        this.jamPraktek = jamPraktek;
     }
 
     // Getters dan Setters sesuai UML
@@ -49,14 +47,6 @@ public class Dokter {
 
     public void setRuangan(String ruangan) {
         this.ruangan = ruangan;
-    }
-
-    public String getJamPraktek() {
-        return jamPraktek;
-    }
-
-    public void setJamPraktek(String jamPraktek) {
-        this.jamPraktek = jamPraktek;
     }
 
     public String getNama() {
